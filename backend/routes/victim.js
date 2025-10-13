@@ -43,17 +43,46 @@ router.get("/auth/check", victimMiddleware, (req, res) => {
 });
 
 // Send SOS
-router.post("/sos", victimMiddleware, async (req, res) => {
+const { broadcastSOS } = require('../services/bridgefy');
+
+router.post('/sos', victimMiddleware, async (req, res) => {
     const { lat, long, battery, type } = req.body;
     try {
-        console.log("hello");
         const victim = await Victim.findOne({ username: req.username });
-        console.log(victim);
-        victim.sos.push({ location: { lat, long }, battery, type });
+        if (!victim) return res.status(404).json({ msg: 'Victim not found' });
+
+        const sosEntry = { location: { lat, long }, battery, type, status: 'Pending', timestamp: Date.now() };
+        victim.sos.push(sosEntry);
         await victim.save();
-        res.json({ msg: "SOS sent successfully" });
+
+        // Attempt to broadcast via Bridgefy (cloud/proxy). If no cloud URL is set, the service will return ok: true and reason 'sdk-only'.
+        const payload = {
+            id: `SOS-${Date.now()}`,
+            username: victim.username,
+            location: sosEntry.location,
+            battery: sosEntry.battery,
+            type: sosEntry.type,
+            timestamp: sosEntry.timestamp
+        };
+
+        const result = await broadcastSOS(payload);
+
+        // Update SOS entry status depending on broadcast result
+        const lastIndex = victim.sos.length - 1;
+        if (result.ok) {
+            victim.sos[lastIndex].status = result.reason === 'sdk-only' ? 'Broadcasted (SDK)' : 'Broadcasted';
+            victim.sos[lastIndex].bridgefy = result.data || { note: result.reason };
+        } else {
+            victim.sos[lastIndex].status = 'Failed';
+            victim.sos[lastIndex].bridgefy = { error: result.reason };
+        }
+
+        await victim.save();
+
+        res.json({ msg: 'SOS processed', broadcast: result });
     } catch (err) {
-        res.status(500).json({ msg: "Error sending SOS" });
+        console.error('Error in /sos route:', err);
+        res.status(500).json({ msg: 'Error sending SOS' });
     }
 });
 
