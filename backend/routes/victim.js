@@ -2,87 +2,177 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { Victim } = require("../db");
-const victimMiddleware = require("../middleware/victim");
+const victimAuth = require("../middleware/victim");
 const router = express.Router();
 
 // Register victim
 router.post("/register", async (req, res) => {
     const { username, phone, password } = req.body;
+    
     try {
-        console.log("log1")
+        const existingVictim = await Victim.findOne({ phone });
+        if (existingVictim) {
+            return res.status(400).json({ msg: "Phone number already registered" });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        console.log("log2");
-        const newVictim = new Victim({ username, phone, password: hashedPassword });
-        console.log("log3");
+        const newVictim = new Victim({ 
+            username, 
+            phone, 
+            password: hashedPassword 
+        });
+        
         await newVictim.save();
         res.json({ msg: "Victim registered successfully" });
     } catch (err) {
-        res.status(400).json({ msg: "Error registering victim", error: err });
+        console.error("Registration error:", err);
+        res.status(400).json({ msg: "Error registering victim", error: err.message });
     }
 });
 
 // Victim login
 router.post("/login", async (req, res) => {
     const { phone, password } = req.body;
+    
     try {
         const victim = await Victim.findOne({ phone });
-        if (!victim) return res.status(404).json({ msg: "Victim not found" });
+        if (!victim) {
+            return res.status(404).json({ msg: "Victim not found" });
+        }
 
         const isMatch = await bcrypt.compare(password, victim.password);
-        if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
+        if (!isMatch) {
+            return res.status(400).json({ msg: "Invalid credentials" });
+        }
 
-        const token = jwt.sign({ username: victim.username, role: "Victim" }, process.env.JWT_SECRET, { expiresIn: "1d" });
-        res.json({ token });
+        const token = jwt.sign(
+            { id: victim._id, role: "Victim" }, 
+            process.env.JWT_SECRET, 
+            { expiresIn: "7d" }
+        );
+        
+        res.json({ 
+            token,
+            user: {
+                id: victim._id,
+                username: victim.username,
+                phone: victim.phone
+            }
+        });
     } catch (err) {
+        console.error("Login error:", err);
         res.status(500).json({ msg: "Server error" });
     }
 });
 
-router.get("/auth/check", victimMiddleware, (req, res) => {
-    res.status(200).json({ username: req.username }); // Send back the authenticated user's details
-});
-
 // Send SOS
-const { broadcastSOS } = require('../services/bridgefy');
-
-router.post('/sos', victimMiddleware, async (req, res) => {
-    const { lat, long, battery, type } = req.body;
+router.post("/sos", victimAuth, async (req, res) => {
+    const { location, battery, type, message } = req.body;
+    
     try {
-        const victim = await Victim.findOne({ username: req.username });
-        if (!victim) return res.status(404).json({ msg: 'Victim not found' });
-
-        const sosEntry = { location: { lat, long }, battery, type, status: 'Pending', timestamp: Date.now() };
-        victim.sos.push(sosEntry);
-        await victim.save();
-
-        // Attempt to broadcast via Bridgefy (cloud/proxy). If no cloud URL is set, the service will return ok: true and reason 'sdk-only'.
-        const payload = {
-            id: `SOS-${Date.now()}`,
-            username: victim.username,
-            location: sosEntry.location,
-            battery: sosEntry.battery,
-            type: sosEntry.type,
-            timestamp: sosEntry.timestamp
-        };
-
-        const result = await broadcastSOS(payload);
-
-        // Update SOS entry status depending on broadcast result
-        const lastIndex = victim.sos.length - 1;
-        if (result.ok) {
-            victim.sos[lastIndex].status = result.reason === 'sdk-only' ? 'Broadcasted (SDK)' : 'Broadcasted';
-            victim.sos[lastIndex].bridgefy = result.data || { note: result.reason };
-        } else {
-            victim.sos[lastIndex].status = 'Failed';
-            victim.sos[lastIndex].bridgefy = { error: result.reason };
+        const victim = await Victim.findById(req.user.id);
+        if (!victim) {
+            return res.status(404).json({ msg: "Victim not found" });
         }
 
+        // Create SOS entry
+        const newSOS = {
+            location,
+            battery,
+            type: type.label || type,
+            timestamp: new Date(),
+            status: "Pending"
+        };
+
+        victim.sos.push(newSOS);
         await victim.save();
 
-        res.json({ msg: 'SOS processed', broadcast: result });
+        const savedSOS = victim.sos[victim.sos.length - 1];
+
+        res.json({ 
+            msg: "SOS sent successfully", 
+            sos: {
+                ...savedSOS.toObject(),
+                victimId: victim._id,
+                victimName: victim.username,
+                victimPhone: victim.phone
+            }
+        });
     } catch (err) {
-        console.error('Error in /sos route:', err);
-        res.status(500).json({ msg: 'Error sending SOS' });
+        console.error("SOS error:", err);
+        res.status(500).json({ msg: "Error sending SOS", error: err.message });
+    }
+});
+
+// Get victim's SOS history
+router.get("/sos-history", victimAuth, async (req, res) => {
+    try {
+        const victim = await Victim.findById(req.user.id);
+        if (!victim) {
+            return res.status(404).json({ msg: "Victim not found" });
+        }
+        
+        res.json({ sos: victim.sos });
+    } catch (err) {
+        console.error("Error fetching SOS history:", err);
+        res.status(500).json({ msg: "Error fetching SOS history" });
+    }
+});
+
+// Get active SOS for victim
+router.get("/active-sos", victimAuth, async (req, res) => {
+    try {
+        const victim = await Victim.findById(req.user.id);
+        if (!victim) {
+            return res.status(404).json({ msg: "Victim not found" });
+        }
+        
+        // Get only pending or acknowledged SOS
+        const activeSOS = victim.sos.filter(
+            sos => sos.status === "Pending" || sos.status === "Acknowledged"
+        );
+        res.json({ activeSOS });
+    } catch (err) {
+        console.error("Error fetching active SOS:", err);
+        res.status(500).json({ msg: "Error fetching active SOS" });
+    }
+});
+
+// Get victim profile
+router.get("/profile", victimAuth, async (req, res) => {
+    try {
+        const victim = await Victim.findById(req.user.id).select("-password");
+        if (!victim) {
+            return res.status(404).json({ msg: "Victim not found" });
+        }
+        
+        res.json(victim);
+    } catch (err) {
+        console.error("Error fetching profile:", err);
+        res.status(500).json({ msg: "Error fetching profile" });
+    }
+});
+
+// Cancel/Resolve SOS
+router.patch("/sos/:sosId/resolve", victimAuth, async (req, res) => {
+    try {
+        const victim = await Victim.findById(req.user.id);
+        if (!victim) {
+            return res.status(404).json({ msg: "Victim not found" });
+        }
+
+        const sos = victim.sos.id(req.params.sosId);
+        if (!sos) {
+            return res.status(404).json({ msg: "SOS not found" });
+        }
+
+        sos.status = "Resolved";
+        await victim.save();
+
+        res.json({ msg: "SOS resolved", sos });
+    } catch (err) {
+        console.error("Error resolving SOS:", err);
+        res.status(500).json({ msg: "Error resolving SOS" });
     }
 });
 

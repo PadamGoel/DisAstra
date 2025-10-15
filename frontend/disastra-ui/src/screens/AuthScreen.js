@@ -16,28 +16,31 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SIZES } from '../constants/theme';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000/api'; // Update this for your backend
+// ⚠️ IMPORTANT: Change this to your actual backend URL
+// For Android emulator: use http://10.0.2.2:5000
+// For iOS simulator: use http://localhost:5000
+// For physical device: use your computer's IP address (e.g., http://192.168.1.100:5000)
+const API_BASE_URL = 'http://10.162.231.17:5000'; // ✅ Update this based on your setup
 
 const AuthScreen = ({ navigation, onAuthSuccess }) => {
-  const [activeTab, setActiveTab] = useState('login'); // 'login' or 'signup'
+  const [activeTab, setActiveTab] = useState('login');
   const [loading, setLoading] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(1));
 
   const [loginForm, setLoginForm] = useState({
-    email: '',
+    phone: '',
     password: '',
+    role: 'Victim', // 'Victim' or 'Responder'
   });
 
   const [signupForm, setSignupForm] = useState({
-    name: '',
-    email: '',
-    password: '',
+    username: '',
     phone: '',
-    role: 'User', // 'User' or 'Responder'
+    password: '',
+    role: 'Victim', // 'Victim' or 'Responder'
   });
 
   useEffect(() => {
-    // Check if user is already logged in
     checkExistingAuth();
   }, []);
 
@@ -45,9 +48,7 @@ const AuthScreen = ({ navigation, onAuthSuccess }) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       const userRole = await AsyncStorage.getItem('userRole');
-      
       if (token && userRole) {
-        // Auto-login if token exists
         handleAuthSuccess({ token, role: userRole });
       }
     } catch (error) {
@@ -55,134 +56,114 @@ const AuthScreen = ({ navigation, onAuthSuccess }) => {
     }
   };
 
+  // 🟢 LOGIN HANDLER
   const handleLogin = async () => {
-    if (!loginForm.email || !loginForm.password) {
+    if (!loginForm.phone || !loginForm.password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    setLoading(true);
-
-    try {
-      // Try backend connection first, fallback to mock
-      let response;
-      try {
-        response = await axios.post(`${API_BASE_URL}/auth/login`, {
-          email: loginForm.email,
-          password: loginForm.password,
-        });
-      } catch (networkError) {
-        // Mock login for development
-        response = await mockLogin(loginForm.email, loginForm.password);
-      }
-
-      if (response.data.success) {
-        const { token, user } = response.data;
-        await AsyncStorage.setItem('authToken', token);
-        await AsyncStorage.setItem('userRole', user.role);
-        await AsyncStorage.setItem('userProfile', JSON.stringify(user));
-        
-        handleAuthSuccess({ token, role: user.role, user });
-      } else {
-        Alert.alert('Login Failed', response.data.message || 'Invalid credentials');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert('Error', 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignup = async () => {
-    if (!signupForm.name || !signupForm.email || !signupForm.password) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    // Basic phone validation
+    if (loginForm.phone.length < 10) {
+      Alert.alert('Error', 'Please enter a valid phone number');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Try backend connection first, fallback to mock
-      let response;
-      try {
-        response = await axios.post(`${API_BASE_URL}/auth/signup`, signupForm);
-      } catch (networkError) {
-        // Mock signup for development
-        response = await mockSignup(signupForm);
-      }
+      const endpoint =
+        loginForm.role === 'Responder'
+          ? `${API_BASE_URL}/responder/login`
+          : `${API_BASE_URL}/victim/login`;
 
-      if (response.data.success) {
-        const { token, user } = response.data;
+      console.log('Attempting login to:', endpoint);
+
+      const response = await axios.post(endpoint, {
+        phone: loginForm.phone,
+        password: loginForm.password,
+      });
+
+      if (response.data.token) {
+        const token = response.data.token;
+        const role = loginForm.role;
+
         await AsyncStorage.setItem('authToken', token);
-        await AsyncStorage.setItem('userRole', user.role);
-        await AsyncStorage.setItem('userProfile', JSON.stringify(user));
-        
-        Alert.alert('Success', 'Account created successfully!');
-        handleAuthSuccess({ token, role: user.role, user });
+        await AsyncStorage.setItem('userRole', role);
+
+        Alert.alert('Success', 'Logged in successfully!');
+        handleAuthSuccess({ token, role });
       } else {
-        Alert.alert('Signup Failed', response.data.message || 'Failed to create account');
+        Alert.alert('Login Failed', response.data.msg || 'Invalid credentials');
       }
     } catch (error) {
-      console.error('Signup error:', error);
-      Alert.alert('Error', 'Signup failed. Please try again.');
+      console.error('Login error:', error);
+      const errorMsg = error.response?.data?.msg || 'Login failed. Please check your credentials.';
+      Alert.alert('Error', errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const mockLogin = async (email, password) => {
-    // Mock authentication for development
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-    
-    const mockUsers = {
-      'user@test.com': { id: 1, name: 'Test User', email, role: 'User' },
-      'responder@test.com': { id: 2, name: 'Test Responder', email, role: 'Responder' },
-    };
-
-    if (mockUsers[email] && password === 'password') {
-      return {
-        data: {
-          success: true,
-          token: 'mock-jwt-token-' + Date.now(),
-          user: mockUsers[email]
-        }
-      };
+  // 🟢 SIGNUP HANDLER
+  const handleSignup = async () => {
+    if (!signupForm.username || !signupForm.password || !signupForm.phone) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
     }
 
-    return {
-      data: {
-        success: false,
-        message: 'Invalid credentials'
-      }
-    };
-  };
-
-  const mockSignup = async (userData) => {
-    // Mock signup for development
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-    
-    const user = {
-      id: Date.now(),
-      name: userData.name,
-      email: userData.email,
-      phone: userData.phone,
-      role: userData.role,
-    };
-
-    return {
-      data: {
-        success: true,
-        token: 'mock-jwt-token-' + Date.now(),
-        user
-      }
-    };
-  };
-
-  const handleAuthSuccess = ({ token, role, user }) => {
-    if (onAuthSuccess) {
-      onAuthSuccess({ token, role, user });
+    // Validation
+    if (signupForm.phone.length < 10) {
+      Alert.alert('Error', 'Please enter a valid phone number (min 10 digits)');
+      return;
     }
+
+    if (signupForm.password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const endpoint =
+        signupForm.role === 'Responder'
+          ? `${API_BASE_URL}/responder/register`
+          : `${API_BASE_URL}/victim/register`;
+
+      console.log('Attempting signup to:', endpoint);
+
+      const response = await axios.post(endpoint, {
+        username: signupForm.username,
+        phone: signupForm.phone,
+        password: signupForm.password,
+        role: signupForm.role === 'Responder' ? 'Volunteer' : undefined, // Only for responders
+      });
+
+      if (response.data.msg?.toLowerCase().includes('success')) {
+        Alert.alert('Success', 'Account created successfully! Please login.');
+        
+        // Switch to login tab and pre-fill credentials
+        setLoginForm({
+          phone: signupForm.phone,
+          password: signupForm.password,
+          role: signupForm.role,
+        });
+        animateTabSwitch('login');
+      } else {
+        Alert.alert('Signup Failed', response.data.msg || 'Failed to create account');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      const errorMsg = error.response?.data?.msg || 'Signup failed. Please try again.';
+      Alert.alert('Error', errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAuthSuccess = ({ token, role }) => {
+    if (onAuthSuccess) onAuthSuccess({ token, role });
   };
 
   const animateTabSwitch = (tab) => {
@@ -246,15 +227,52 @@ const AuthScreen = ({ navigation, onAuthSuccess }) => {
                 <Text style={styles.formTitle}>Welcome Back</Text>
                 <Text style={styles.formSubtitle}>Sign in to continue</Text>
 
+                {/* Role Selection for Login */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Email</Text>
+                  <Text style={styles.inputLabel}>Login As</Text>
+                  <View style={styles.roleContainer}>
+                    <Pressable
+                      style={[
+                        styles.roleOption,
+                        loginForm.role === 'Victim' && styles.roleOptionActive
+                      ]}
+                      onPress={() => setLoginForm(prev => ({ ...prev, role: 'Victim' }))}
+                    >
+                      <Text style={styles.roleIcon}>👤</Text>
+                      <Text style={[
+                        styles.roleText,
+                        loginForm.role === 'Victim' && styles.roleTextActive
+                      ]}>
+                        Victim
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={[
+                        styles.roleOption,
+                        loginForm.role === 'Responder' && styles.roleOptionActive
+                      ]}
+                      onPress={() => setLoginForm(prev => ({ ...prev, role: 'Responder' }))}
+                    >
+                      <Text style={styles.roleIcon}>🚑</Text>
+                      <Text style={[
+                        styles.roleText,
+                        loginForm.role === 'Responder' && styles.roleTextActive
+                      ]}>
+                        Responder
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Phone Number</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Enter your email"
+                    placeholder="Enter your phone number"
                     placeholderTextColor={COLORS.textMuted}
-                    value={loginForm.email}
-                    onChangeText={(text) => setLoginForm(prev => ({ ...prev, email: text }))}
-                    keyboardType="email-address"
+                    value={loginForm.phone}
+                    onChangeText={(text) => setLoginForm(prev => ({ ...prev, phone: text }))}
+                    keyboardType="phone-pad"
                     autoCapitalize="none"
                   />
                 </View>
@@ -285,12 +303,6 @@ const AuthScreen = ({ navigation, onAuthSuccess }) => {
                     </Text>
                   </LinearGradient>
                 </Pressable>
-
-                <View style={styles.testCredentials}>
-                  <Text style={styles.testTitle}>Test Credentials:</Text>
-                  <Text style={styles.testText}>User: user@test.com / password</Text>
-                  <Text style={styles.testText}>Responder: responder@test.com / password</Text>
-                </View>
               </View>
             ) : (
               <View style={styles.form}>
@@ -303,26 +315,13 @@ const AuthScreen = ({ navigation, onAuthSuccess }) => {
                     style={styles.input}
                     placeholder="Enter your full name"
                     placeholderTextColor={COLORS.textMuted}
-                    value={signupForm.name}
-                    onChangeText={(text) => setSignupForm(prev => ({ ...prev, name: text }))}
+                    value={signupForm.username}
+                    onChangeText={(text) => setSignupForm(prev => ({ ...prev, username: text }))}
                   />
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Email *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your email"
-                    placeholderTextColor={COLORS.textMuted}
-                    value={signupForm.email}
-                    onChangeText={(text) => setSignupForm(prev => ({ ...prev, email: text }))}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Phone Number</Text>
+                  <Text style={styles.inputLabel}>Phone Number *</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="Enter your phone number"
@@ -337,7 +336,7 @@ const AuthScreen = ({ navigation, onAuthSuccess }) => {
                   <Text style={styles.inputLabel}>Password *</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Create a password"
+                    placeholder="Create a password (min 6 characters)"
                     placeholderTextColor={COLORS.textMuted}
                     value={signupForm.password}
                     onChangeText={(text) => setSignupForm(prev => ({ ...prev, password: text }))}
@@ -347,21 +346,21 @@ const AuthScreen = ({ navigation, onAuthSuccess }) => {
 
                 {/* Role Selection */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Role *</Text>
+                  <Text style={styles.inputLabel}>Register As *</Text>
                   <View style={styles.roleContainer}>
                     <Pressable
                       style={[
                         styles.roleOption,
-                        signupForm.role === 'User' && styles.roleOptionActive
+                        signupForm.role === 'Victim' && styles.roleOptionActive
                       ]}
-                      onPress={() => setSignupForm(prev => ({ ...prev, role: 'User' }))}
+                      onPress={() => setSignupForm(prev => ({ ...prev, role: 'Victim' }))}
                     >
                       <Text style={styles.roleIcon}>👤</Text>
                       <Text style={[
                         styles.roleText,
-                        signupForm.role === 'User' && styles.roleTextActive
+                        signupForm.role === 'Victim' && styles.roleTextActive
                       ]}>
-                        Civilian
+                        Victim
                       </Text>
                     </Pressable>
                     <Pressable
@@ -468,6 +467,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
+    marginBottom: SIZES.xl,
   },
   formTitle: {
     fontSize: SIZES.fontXl,
@@ -546,25 +546,6 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontMd,
     fontWeight: 'bold',
     color: '#FFFFFF',
-  },
-  testCredentials: {
-    marginTop: SIZES.xl,
-    padding: SIZES.md,
-    backgroundColor: COLORS.background,
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  testTitle: {
-    fontSize: SIZES.fontSm,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.sm,
-  },
-  testText: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-    fontFamily: 'monospace',
   },
 });
 

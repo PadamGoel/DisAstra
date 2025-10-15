@@ -38,7 +38,16 @@ const responderSchema = new mongoose.Schema({
 const Responder = mongoose.model("Responder", responderSchema);
 const Victim = mongoose.model("Victim", victimSchema);
 
+const sosMessageSchema = new mongoose.Schema({
+    message: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+    status: { type: String, default: "Active" } // Active / Resolved
+});
+
+const SOSMessage = mongoose.model("SOSMessage", sosMessageSchema);
+
 module.exports = {
     Responder,
-    Victim
-}
+    Victim,
+    SOSMessage
+};
