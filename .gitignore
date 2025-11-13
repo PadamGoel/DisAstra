@@ -1,0 +1,68 @@
+## --- SECRETS (MOST IMPORTANT) ---
+## Ignore the new secrets file
+#app/secrets.properties
+#
+## Ignore local properties (can contain SDK paths and keys)
+#local.properties
+#
+## --- LIBRARIES ---
+## Ignore the local Bridgefy .aar file.
+## Your evaluator will need to add this file manually.
+#app/libs/*.aar
+#
+## --- BUILD & IDE FILES ---
+## Android Studio & IntelliJ
+#*.iml
+#.idea/
+#.gradle/
+#
+## Android build outputs
+#build/
+#builds/
+#
+## Keystore files (for signing the app)
+#*.jks
+#*.keystore
+
+Bridgefy API Key
+
+app/secrets.properties
+
+Android Studio/IDE files
+
+.idea/
+.gradle/
+*.iml
+.DS_Store
+/build/
+/app/build/
+captures/
+.externalNativeBuild/
+
+Java / JVM heap dumps (CRITICAL)
+
+*.hprof
+
+Kotlin IDE cache (CRITICAL)
+
+.kotlin/
+
+Gradle Wrapper binary (CRITICAL)
+
+gradle/wrapper/gradle-wrapper.jar
+
+User-specific local properties
+
+local.properties
+
+Temporary files (CRITICAL)
+
+none
+java_pid*
+
+Root-level Node.js files (CRITICAL)
+
+These should only be in your sub-projects
+
+/package.json
+/package-lock.json
