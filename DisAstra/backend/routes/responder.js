@@ -1,48 +1,72 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { Responder } = require("../db");
-const { Victim }  = require("../db");
+const { Responder, Victim } = require("../db");
 const responderAuth = require("../middleware/responder");
+
 const router = express.Router();
 
 // Register responder
 router.post("/register", async (req, res) => {
     const { username, phone, password, role } = req.body;
+
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newResponder = new Responder({ username, phone, password: hashedPassword, role });
-        await newResponder.save();
-        res.json({ msg: "Responder registered successfully" });
+
+        const responder = new Responder({
+            username,
+            phone,
+            password: hashedPassword,
+            role
+        });
+
+        await responder.save();
+
+        return res.json({ msg: "Responder registered successfully" });
+
     } catch (err) {
-        res.status(400).json({ msg: "Error registering responder", error: err });
+        return res.status(400).json({
+            msg: "Error registering responder",
+            error: err.message
+        });
     }
 });
 
-// Responder login
+// Login responder
 router.post("/login", async (req, res) => {
     const { phone, password } = req.body;
+
     try {
         const responder = await Responder.findOne({ phone });
-        if (!responder) return res.status(404).json({ msg: "Responder not found" });
+        if (!responder) {
+            return res.status(404).json({ msg: "Responder not found" });
+        }
 
-        const isMatch = await bcrypt.compare(password, responder.password);
-        if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
+        const isValid = await bcrypt.compare(password, responder.password);
+        if (!isValid) {
+            return res.status(400).json({ msg: "Invalid credentials" });
+        }
 
-        const token = jwt.sign({ id: responder._id, role: "Responder" }, process.env.JWT_SECRET, { expiresIn: "1d" });
-        res.json({ token });
+        const token = jwt.sign(
+            { id: responder._id, role: "Responder" },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
+        return res.json({ token });
+
     } catch (err) {
-        res.status(500).json({ msg: "Server error" });
+        return res.status(500).json({ msg: "Server error" });
     }
 });
 
 // Get all pending SOS
 router.get("/sos", responderAuth, async (req, res) => {
     try {
-        const victims = await Victim.find({ "sos.status": "Pending" });
-        res.json(victims);
+        const pendingSOS = await Victim.find({ "sos.status": "Pending" });
+        return res.json(pendingSOS);
     } catch (err) {
-        res.status(500).json({ msg: "Error fetching SOS" });
+        return res.status(500).json({ msg: "Error fetching SOS" });
     }
 });
 
@@ -50,17 +74,28 @@ router.get("/sos", responderAuth, async (req, res) => {
 router.post("/assign/:victimId", responderAuth, async (req, res) => {
     try {
         const { victimId } = req.params;
+
         const responder = await Responder.findById(req.user.id);
+        if (!responder) {
+            return res.status(404).json({ msg: "Responder not found" });
+        }
+
         responder.assignedSOS.push({ victimId });
         await responder.save();
 
         const victim = await Victim.findById(victimId);
-        victim.sos[victim.sos.length - 1].status = "Acknowledged";
+        if (!victim) {
+            return res.status(404).json({ msg: "Victim not found" });
+        }
+
+        const lastSOS = victim.sos[victim.sos.length - 1];
+        lastSOS.status = "Acknowledged";
         await victim.save();
 
-        res.json({ msg: "Responder assigned to SOS" });
+        return res.json({ msg: "Responder assigned to SOS" });
+
     } catch (err) {
-        res.status(500).json({ msg: "Error assigning responder" });
+        return res.status(500).json({ msg: "Error assigning responder" });
     }
 });
 
