@@ -1,489 +1,288 @@
-import React, { useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Dimensions,
-  Alert,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, SIZES, SHADOWS } from '../constants/theme';
-import { MOCK_SOS_INCIDENTS, MOCK_HAZARD_ZONES, MOCK_EVACUATION_ROUTES } from '../data/mockData';
+/**
+ * Mock Data for DISASTRA UI Prototype
+ * 
+ * This file contains sample data for testing and development of the emergency
+ * response system. All data is fictional and used for demonstration purposes.
+ * 
+ * @module mockData
+ */
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+// =============================================================================
+// EMERGENCY TYPE DEFINITIONS
+// =============================================================================
 
-const MockMap = ({ 
-  incidents = MOCK_SOS_INCIDENTS,
-  onIncidentSelect,
-  layers = {
-    victims: true,
-    responders: true,
-    hazards: false,
-    evacuation_routes: false,
-    heatmap: false
+/**
+ * Emergency type categories with their respective priorities
+ * Priority scale: 1 (lowest) to 10 (highest/most critical)
+ */
+export const EMERGENCY_TYPES = [
+  { id: 'medical', label: '🏥 Medical', color: '#ef4444', priority: 9 },
+  { id: 'fire', label: '🔥 Fire', color: '#f97316', priority: 10 },
+  { id: 'police', label: '👮 Police', color: '#3b82f6', priority: 8 },
+  { id: 'natural', label: '🌪️ Natural Disaster', color: '#8b5cf6', priority: 9 },
+  { id: 'violence', label: '⚠️ Violence', color: '#dc2626', priority: 10 },
+  { id: 'technical', label: '⚡ Technical', color: '#eab308', priority: 6 },
+  { id: 'trapped', label: '🚪 Trapped', color: '#f59e0b', priority: 8 },
+  { id: 'other', label: '❓ Other', color: '#6b7280', priority: 5 }
+];
+
+// =============================================================================
+// SOS INCIDENT DATA
+// =============================================================================
+
+/**
+ * Sample SOS incidents with various statuses and urgency levels
+ * Status types: 'new', 'acknowledged', 'en-route', 'resolved'
+ */
+export const MOCK_SOS_INCIDENTS = [
+  {
+    id: 'sos-001',
+    type: 'medical',
+    message: 'Heart attack, need immediate help',
+    location: { latitude: 28.6139, longitude: 77.2090 },
+    timestamp: Date.now() - 300000, // 5 minutes ago
+    status: 'new',
+    batteryLevel: 45,
+    deviceId: 'device-001',
+    urgency: 9,
+    distance: 450 // Distance in meters
+  },
+  {
+    id: 'sos-002',
+    type: 'fire',
+    message: 'Building on fire, trapped on 3rd floor',
+    location: { latitude: 28.6129, longitude: 77.2080 },
+    timestamp: Date.now() - 600000, // 10 minutes ago
+    status: 'acknowledged',
+    batteryLevel: 78,
+    deviceId: 'device-002',
+    urgency: 10,
+    distance: 680,
+    assignedTeam: 'Fire Brigade Unit 7'
+  },
+  {
+    id: 'sos-003',
+    type: 'police',
+    message: 'Robbery in progress',
+    location: { latitude: 28.6149, longitude: 77.2070 },
+    timestamp: Date.now() - 900000, // 15 minutes ago
+    status: 'en-route',
+    batteryLevel: 92,
+    deviceId: 'device-003',
+    urgency: 8,
+    distance: 320,
+    assignedTeam: 'Police Unit 12',
+    eta: 3 // ETA in minutes
+  },
+  {
+    id: 'sos-004',
+    type: 'trapped',
+    message: 'Elevator stuck between floors',
+    location: { latitude: 28.6159, longitude: 77.2060 },
+    timestamp: Date.now() - 1200000, // 20 minutes ago
+    status: 'resolved',
+    batteryLevel: 23,
+    deviceId: 'device-004',
+    urgency: 6,
+    distance: 890,
+    resolvedAt: Date.now() - 300000
   }
-}) => {
-  const [selectedIncident, setSelectedIncident] = useState(null);
-  const [mapLayers, setMapLayers] = useState(layers);
+];
 
-  const handleIncidentPress = (incident) => {
-    setSelectedIncident(incident);
-    onIncidentSelect && onIncidentSelect(incident);
-    
-    Alert.alert(
-      `${getIncidentIcon(incident.type)} ${incident.type.toUpperCase()}`,
-      `Message: ${incident.message}\nDistance: ${incident.distance}m\nStatus: ${incident.status}\nBattery: ${incident.batteryLevel}%`,
-      [
-        { text: 'Dismiss' },
-        { text: 'Navigate', onPress: () => navigateToIncident(incident) },
-        incident.status === 'new' && { 
-          text: 'Acknowledge', 
-          onPress: () => acknowledgeIncident(incident) 
-        }
-      ].filter(Boolean)
-    );
-  };
+// =============================================================================
+// RESPONDER TEAM DATA
+// =============================================================================
 
-  const navigateToIncident = (incident) => {
-    Alert.alert('Navigation', `Routing to ${incident.type} incident...`);
-  };
+/**
+ * Emergency response teams with their current status and location
+ * Status types: 'available', 'responding', 'en-route', 'busy'
+ */
+export const MOCK_RESPONDER_TEAMS = [
+  {
+    id: 'team-001',
+    name: 'Medical Response Unit 3',
+    type: 'medical',
+    members: 4,
+    location: { latitude: 28.6120, longitude: 77.2100 },
+    status: 'available',
+    specialization: 'Emergency Medicine'
+  },
+  {
+    id: 'team-002',
+    name: 'Fire Brigade Unit 7',
+    type: 'fire',
+    members: 6,
+    location: { latitude: 28.6140, longitude: 77.2085 },
+    status: 'responding',
+    specialization: 'Urban Fire Rescue'
+  },
+  {
+    id: 'team-003',
+    name: 'Police Unit 12',
+    type: 'police',
+    members: 2,
+    location: { latitude: 28.6135, longitude: 77.2075 },
+    status: 'en-route',
+    specialization: 'Emergency Response'
+  }
+];
 
-  const acknowledgeIncident = (incident) => {
-    Alert.alert('Acknowledged', `You have acknowledged the ${incident.type} incident.`);
-  };
+// =============================================================================
+// NETWORK STATISTICS
+// =============================================================================
 
-  const toggleLayer = (layerKey) => {
-    setMapLayers(prev => ({
-      ...prev,
-      [layerKey]: !prev[layerKey]
-    }));
-  };
-
-  const getIncidentIcon = (type) => {
-    const icons = {
-      medical: '🏥',
-      fire: '🔥',
-      police: '👮',
-      natural: '🌪️',
-      violence: '⚠️',
-      technical: '⚡',
-      trapped: '🚪',
-      other: '❓'
-    };
-    return icons[type] || '❓';
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'new': return COLORS.statusNew;
-      case 'acknowledged': return COLORS.statusAcknowledged;
-      case 'en-route': return COLORS.statusEnRoute;
-      case 'resolved': return COLORS.statusResolved;
-      default: return COLORS.textMuted;
-    }
-  };
-
-  const getIncidentPosition = (incident, index) => {
-    // Mock positioning based on index and some randomization
-    const baseX = 50 + (index * 30) % 200;
-    const baseY = 100 + (index * 40) % 300;
-    const randomX = (incident.location.latitude * 1000) % 50;
-    const randomY = (incident.location.longitude * 1000) % 50;
-    
-    return {
-      left: (baseX + randomX) % (screenWidth - 60),
-      top: (baseY + randomY) % (screenHeight - 200),
-    };
-  };
-
-  const renderIncidentPin = (incident, index) => {
-    const position = getIncidentPosition(incident, index);
-    const isSelected = selectedIncident?.id === incident.id;
-    
-    return (
-      <TouchableOpacity
-        key={incident.id}
-        style={[
-          styles.incidentPin,
-          {
-            backgroundColor: getStatusColor(incident.status),
-            borderColor: isSelected ? COLORS.textPrimary : 'transparent',
-            borderWidth: isSelected ? 2 : 0,
-            ...position,
-          },
-        ]}
-        onPress={() => handleIncidentPress(incident)}
-      >
-        <Text style={styles.incidentIcon}>
-          {getIncidentIcon(incident.type)}
-        </Text>
-        {incident.urgency >= 8 && (
-          <View style={styles.urgencyIndicator}>
-            <Text style={styles.urgencyText}>!</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  };
-
-  const renderHazardZone = (hazard, index) => {
-    const position = {
-      left: 100 + (index * 80),
-      top: 150 + (index * 60),
-      width: 80,
-      height: 60,
-    };
-
-    return (
-      <View
-        key={hazard.id}
-        style={[
-          styles.hazardZone,
-          position,
-          {
-            backgroundColor: hazard.severity === 'high' 
-              ? 'rgba(239, 68, 68, 0.3)' 
-              : 'rgba(245, 158, 11, 0.3)',
-            borderColor: hazard.severity === 'high' 
-              ? COLORS.emergency 
-              : COLORS.warning,
-          },
-        ]}
-      >
-        <Text style={styles.hazardText}>
-          {hazard.type === 'flood' ? '🌊' : '💨'}
-        </Text>
-      </View>
-    );
-  };
-
-  const renderEvacuationRoute = (route, index) => {
-    return (
-      <View
-        key={route.id}
-        style={[
-          styles.evacuationRoute,
-          {
-            left: 20,
-            top: 200 + (index * 100),
-            width: screenWidth - 40,
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={['rgba(59, 130, 246, 0.6)', 'rgba(16, 185, 129, 0.6)']}
-          style={styles.routeLine}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        />
-        <Text style={styles.routeLabel}>{route.name}</Text>
-      </View>
-    );
-  };
-
-  return (
-    <View style={styles.container}>
-      {/* Mock Map Background */}
-      <View style={styles.mapBackground}>
-        <LinearGradient
-          colors={['#1f2937', '#374151', '#4b5563']}
-          style={styles.mapGradient}
-        />
-        
-        {/* Grid Lines for Map Feel */}
-        <View style={styles.gridContainer}>
-          {Array.from({ length: 10 }).map((_, i) => (
-            <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 50 }]} />
-          ))}
-          {Array.from({ length: 8 }).map((_, i) => (
-            <View key={`v-${i}`} style={[styles.gridLineVertical, { left: i * 50 }]} />
-          ))}
-        </View>
-
-        {/* Map Content */}
-        {mapLayers.victims && incidents.map((incident, index) => 
-          renderIncidentPin(incident, index)
-        )}
-        
-        {mapLayers.hazards && MOCK_HAZARD_ZONES.map((hazard, index) => 
-          renderHazardZone(hazard, index)
-        )}
-        
-        {mapLayers.evacuation_routes && MOCK_EVACUATION_ROUTES.map((route, index) => 
-          renderEvacuationRoute(route, index)
-        )}
-
-        {/* User Location Indicator */}
-        <View style={styles.userLocation}>
-          <View style={styles.userLocationDot} />
-          <View style={styles.userLocationRing} />
-        </View>
-
-        {/* Compass */}
-        <View style={styles.compass}>
-          <Text style={styles.compassText}>N</Text>
-          <View style={styles.compassNeedle} />
-        </View>
-      </View>
-
-      {/* Layer Controls */}
-      <View style={styles.layerControls}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {Object.entries(mapLayers).map(([key, enabled]) => (
-            <TouchableOpacity
-              key={key}
-              style={[
-                styles.layerButton,
-                { backgroundColor: enabled ? COLORS.primary : COLORS.card }
-              ]}
-              onPress={() => toggleLayer(key)}
-            >
-              <Text style={styles.layerButtonText}>
-                {key.replace('_', ' ').toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Legend */}
-      <View style={styles.legend}>
-        <Text style={styles.legendTitle}>Legend</Text>
-        <View style={styles.legendItems}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: COLORS.statusNew }]} />
-            <Text style={styles.legendText}>New</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: COLORS.statusAcknowledged }]} />
-            <Text style={styles.legendText}>Acknowledged</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: COLORS.statusEnRoute }]} />
-            <Text style={styles.legendText}>En Route</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: COLORS.statusResolved }]} />
-            <Text style={styles.legendText}>Resolved</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Map Info */}
-      <View style={styles.mapInfo}>
-        <Text style={styles.mapInfoText}>
-          {incidents.filter(i => i.status === 'new').length} new incidents • 
-          {incidents.filter(i => i.status === 'acknowledged').length} acknowledged
-        </Text>
-      </View>
-    </View>
-  );
+/**
+ * Real-time mesh network statistics
+ * Health indicators: 'excellent', 'good', 'fair', 'poor'
+ */
+export const MOCK_NETWORK_STATS = {
+  peerCount: 127,
+  health: 'good',
+  coverage: '85%',
+  meshNodes: 42,
+  lastUpdate: Date.now()
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  mapBackground: {
-    flex: 1,
-    position: 'relative',
-  },
-  mapGradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  gridContainer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  gridLineHorizontal: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: COLORS.border,
-    opacity: 0.3,
-  },
-  gridLineVertical: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 1,
-    backgroundColor: COLORS.border,
-    opacity: 0.3,
-  },
-  incidentPin: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.medium,
-  },
-  incidentIcon: {
-    fontSize: 20,
-  },
-  urgencyIndicator: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: COLORS.emergency,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  urgencyText: {
-    color: COLORS.textPrimary,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  hazardZone: {
-    position: 'absolute',
-    borderWidth: 2,
-    borderRadius: SIZES.radiusMd,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderStyle: 'dashed',
-  },
-  hazardText: {
-    fontSize: 24,
-  },
-  evacuationRoute: {
-    position: 'absolute',
-    height: 6,
-    borderRadius: 3,
-  },
-  routeLine: {
-    flex: 1,
-    borderRadius: 3,
-  },
-  routeLabel: {
-    position: 'absolute',
-    top: -20,
-    left: 10,
-    color: COLORS.textSecondary,
-    fontSize: SIZES.fontSm,
-    fontWeight: '500',
-  },
-  userLocation: {
-    position: 'absolute',
-    bottom: 100,
-    left: screenWidth / 2 - 15,
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userLocationDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.info,
-  },
-  userLocationRing: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: COLORS.info,
-    opacity: 0.5,
-  },
-  compass: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.cardOverlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.medium,
-  },
-  compassText: {
-    color: COLORS.textPrimary,
-    fontSize: SIZES.fontMd,
-    fontWeight: 'bold',
-  },
-  compassNeedle: {
-    position: 'absolute',
-    width: 2,
-    height: 20,
-    backgroundColor: COLORS.emergency,
-    top: 10,
-  },
-  layerControls: {
-    position: 'absolute',
-    top: 120,
-    left: 0,
-    right: 0,
-    height: 50,
-  },
-  layerButton: {
-    marginLeft: SIZES.sm,
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.sm,
-    borderRadius: SIZES.radiusMd,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  layerButtonText: {
-    color: COLORS.textPrimary,
-    fontSize: SIZES.fontSm,
-    fontWeight: '600',
-  },
-  legend: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    backgroundColor: COLORS.cardOverlay,
-    padding: SIZES.md,
-    borderRadius: SIZES.radiusMd,
-    ...SHADOWS.medium,
-  },
-  legendTitle: {
-    color: COLORS.textPrimary,
-    fontSize: SIZES.fontSm,
-    fontWeight: 'bold',
-    marginBottom: SIZES.sm,
-  },
-  legendItems: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: SIZES.md,
-    marginBottom: SIZES.xs,
-  },
-  legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: SIZES.xs,
-  },
-  legendText: {
-    color: COLORS.textSecondary,
-    fontSize: SIZES.fontXs,
-  },
-  mapInfo: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: COLORS.cardOverlay,
-    padding: SIZES.sm,
-    borderRadius: SIZES.radiusSm,
-  },
-  mapInfoText: {
-    color: COLORS.textSecondary,
-    fontSize: SIZES.fontSm,
-  },
-});
+// =============================================================================
+// USER PROFILE DATA
+// =============================================================================
 
-export default MockMap;
+/**
+ * User profile information
+ * Role types: 'civilian', 'volunteer', 'responder', 'coordinator'
+ * Verification levels: 'unverified', 'pending', 'verified', 'trusted'
+ */
+export const MOCK_USER_PROFILE = {
+  id: 'user-001',
+  name: 'Alex Johnson',
+  role: 'civilian',
+  language: 'en',
+  trustRingSize: 8,
+  sosHistory: 2,
+  helpProvided: 15,
+  verificationLevel: 'verified'
+};
+
+// =============================================================================
+// HAZARD ZONE DATA
+// =============================================================================
+
+/**
+ * Active hazard zones with severity levels
+ * Severity types: 'low', 'medium', 'high', 'critical'
+ */
+export const MOCK_HAZARD_ZONES = [
+  {
+    id: 'hazard-001',
+    type: 'flood',
+    severity: 'high',
+    area: [
+      { latitude: 28.6100, longitude: 77.2050 },
+      { latitude: 28.6110, longitude: 77.2060 },
+      { latitude: 28.6105, longitude: 77.2070 },
+      { latitude: 28.6095, longitude: 77.2060 }
+    ],
+    description: 'Flash flood warning - avoid area'
+  },
+  {
+    id: 'hazard-002',
+    type: 'gas-leak',
+    severity: 'medium',
+    area: [
+      { latitude: 28.6150, longitude: 77.2040 },
+      { latitude: 28.6155, longitude: 77.2045 },
+      { latitude: 28.6150, longitude: 77.2050 },
+      { latitude: 28.6145, longitude: 77.2045 }
+    ],
+    description: 'Gas leak reported - evacuation in progress'
+  }
+];
+
+// =============================================================================
+// EVACUATION ROUTE DATA
+// =============================================================================
+
+/**
+ * Designated evacuation routes with real-time status
+ * Capacity levels: 'low', 'medium', 'high'
+ * Status types: 'clear', 'congested', 'blocked'
+ */
+export const MOCK_EVACUATION_ROUTES = [
+  {
+    id: 'route-001',
+    name: 'Primary Evacuation Route',
+    path: [
+      { latitude: 28.6139, longitude: 77.2090 },
+      { latitude: 28.6140, longitude: 77.2095 },
+      { latitude: 28.6145, longitude: 77.2100 },
+      { latitude: 28.6150, longitude: 77.2105 }
+    ],
+    capacity: 'high',
+    status: 'clear'
+  },
+  {
+    id: 'route-002',
+    name: 'Secondary Route',
+    path: [
+      { latitude: 28.6130, longitude: 77.2080 },
+      { latitude: 28.6135, longitude: 77.2085 },
+      { latitude: 28.6140, longitude: 77.2090 }
+    ],
+    capacity: 'medium',
+    status: 'congested'
+  }
+];
+
+// =============================================================================
+// NOTIFICATION MESSAGES
+// =============================================================================
+
+/**
+ * System messages and notifications
+ * Priority levels: 'low', 'medium', 'high', 'critical'
+ * Message types: 'sos-confirmation', 'safety-update', 'network-update', 'alert'
+ */
+export const MOCK_MESSAGES = [
+  {
+    id: 'msg-001',
+    type: 'sos-confirmation',
+    title: 'Help is on the way!',
+    body: 'Medical Response Unit 3 has been dispatched. ETA: 4 minutes.',
+    timestamp: Date.now() - 120000, // 2 minutes ago
+    priority: 'high'
+  },
+  {
+    id: 'msg-002',
+    type: 'safety-update',
+    title: 'Area Safe',
+    body: 'Gas leak in sector 7 has been contained. Area now safe.',
+    timestamp: Date.now() - 300000, // 5 minutes ago
+    priority: 'medium'
+  },
+  {
+    id: 'msg-003',
+    type: 'network-update',
+    title: 'Network Restored',
+    body: 'Mesh network coverage improved to 95% in your area.',
+    timestamp: Date.now() - 600000, // 10 minutes ago
+    priority: 'low'
+  }
+];
+
+// =============================================================================
+// ANALYTICS AND METRICS
+// =============================================================================
+
+/**
+ * System-wide analytics and performance metrics
+ * Safety index levels: 'Critical', 'Poor', 'Fair', 'Good', 'Excellent'
+ */
+export const MOCK_ANALYTICS = {
+  urgencyScore: 7.2,
+  networkHealth: 85,
+  responseTime: '3.2 min',
+  activeCases: 12,
+  resolvedToday: 28,
+  peakHours: '14:00-16:00',
+  safetyIndex: 'Good'
+};
