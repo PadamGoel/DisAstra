@@ -1,3 +1,13 @@
+/**
+ * HomeScreen.jsx
+ * DISASTRA — Home screen (non-functional refactor)
+ * - Added file header and constants for readability/maintainability
+ * - Extracted repeated magic numbers into named constants (no behavior change)
+ * - Added small inline comments to clarify flows
+ *
+ * Author: Chakshit Bansal (suggested)
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -17,57 +27,87 @@ import { LinearGradient } from 'expo-linear-gradient';
 import SOSButton from '../components/SOSButton';
 import { COLORS, SIZES } from '../constants/theme';
 
+/* ---------------------------
+   Named defaults & constants
+   (Values identical to original; only renamed for clarity)
+   --------------------------- */
+const DEFAULT_COORDINATES = { lat: 40.7128, lng: -74.0060, altitude: 15 };
+const DEFAULT_BATTERY = 82;
+const DEFAULT_DEVICE_ID = 'DISASTRA-USER-001';
+
+const ANIMATIONS = {
+  fadeInDurationMs: 500,
+};
+
+const MOCK_TIMEOUTS = {
+  sendSimulationMs: 2500,
+  responderAckMs: 3000,
+};
+
+const STORAGE_KEYS = {
+  sosHistory: 'sosHistory',
+};
+
+const INITIAL_SOS_DATA = {
+  timestamp: null,
+  coordinates: DEFAULT_COORDINATES,
+  battery: DEFAULT_BATTERY,
+  deviceId: DEFAULT_DEVICE_ID,
+};
+
+const INITIAL_UPDATE_FORM = {
+  disasterType: '',
+  peopleCount: '',
+  supplies: [],
+  additionalInfo: '',
+};
+
+const EMPTY_HISTORY = {
+  type: '',
+  people: '',
+  supplies: [],
+  location: '',
+  time: '',
+  hasUpdate: false,
+};
+
+const supplyOptions = [
+  'Medical Supplies', 'Food & Water', 'Shelter Materials',
+  'Rescue Equipment', 'Communication', 'Transportation'
+];
+
+const disasterTypes = [
+  'Medical Emergency', 'Fire', 'Flood', 'Earthquake',
+  'Building Collapse', 'Gas Leak', 'Chemical Spill', 'Other'
+];
+
+/* ---------------------------
+   HomeScreen Component
+   --------------------------- */
 const HomeScreen = ({ navigation }) => {
   const [sosStatus, setSOSStatus] = useState('idle'); // 'idle', 'sending', 'sent'
   const [selectedEmergencyType, setSelectedEmergencyType] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [sosData, setSOSData] = useState({
-    timestamp: null,
-    coordinates: { lat: 40.7128, lng: -74.0060, altitude: 15 },
-    battery: 82,
-    deviceId: 'DISASTRA-USER-001',
-  });
-  const [updateForm, setUpdateForm] = useState({
-    disasterType: '',
-    peopleCount: '',
-    supplies: [],
-    additionalInfo: '',
-  });
+  const [sosData, setSOSData] = useState(INITIAL_SOS_DATA);
+  const [updateForm, setUpdateForm] = useState(INITIAL_UPDATE_FORM);
 
   // SOS Status History for permanent display
-  const [sosHistory, setSOSHistory] = useState({
-    type: '',
-    people: '',
-    supplies: [],
-    location: '',
-    time: '',
-    hasUpdate: false,
-  });
+  const [sosHistory, setSOSHistory] = useState(EMPTY_HISTORY);
 
   // Animation for confirmation message
   const fadeAnim = new Animated.Value(0);
-
-  // Available supply options
-  const supplyOptions = [
-    'Medical Supplies', 'Food & Water', 'Shelter Materials', 
-    'Rescue Equipment', 'Communication', 'Transportation'
-  ];
-
-  const disasterTypes = [
-    'Medical Emergency', 'Fire', 'Flood', 'Earthquake', 
-    'Building Collapse', 'Gas Leak', 'Chemical Spill', 'Other'
-  ];
 
   // Load SOS history on component mount
   useEffect(() => {
     loadSOSHistory();
   }, []);
 
+  // Fade-in when sosStatus becomes 'sent'
   useEffect(() => {
     if (sosStatus === 'sent') {
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: ANIMATIONS.fadeInDurationMs,
         useNativeDriver: true,
       }).start();
     }
@@ -75,7 +115,7 @@ const HomeScreen = ({ navigation }) => {
 
   const loadSOSHistory = async () => {
     try {
-      const savedHistory = await AsyncStorage.getItem('sosHistory');
+      const savedHistory = await AsyncStorage.getItem(STORAGE_KEYS.sosHistory);
       if (savedHistory) {
         setSOSHistory(JSON.parse(savedHistory));
       }
@@ -86,7 +126,7 @@ const HomeScreen = ({ navigation }) => {
 
   const saveSOSHistory = async (historyData) => {
     try {
-      await AsyncStorage.setItem('sosHistory', JSON.stringify(historyData));
+      await AsyncStorage.setItem(STORAGE_KEYS.sosHistory, JSON.stringify(historyData));
       setSOSHistory(historyData);
     } catch (error) {
       console.log('Error saving SOS history:', error);
@@ -94,21 +134,22 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleSOSActivated = (emergencyType) => {
+    // Keep same logic — mark selected type and simulate send
     setSelectedEmergencyType(emergencyType);
     setSOSStatus('sending');
     setSOSData(prev => ({
       ...prev,
       timestamp: new Date().toISOString(),
     }));
-    
-    // Simulate sending process with mock ETA updates
+
+    // Simulate sending process with mock ETA updates (timeouts unchanged)
     setTimeout(() => {
       setSOSStatus('sent');
-      // Mock responder acknowledgment after 3 seconds
+      // Mock responder acknowledgment after responderAckMs
       setTimeout(() => {
-        // You could add ETA updates here
-      }, 3000);
-    }, 2500);
+        // Placeholder for possible ETA/responder updates (no-op)
+      }, MOCK_TIMEOUTS.responderAckMs);
+    }, MOCK_TIMEOUTS.sendSimulationMs);
   };
 
   const handleAddMoreInfo = () => {
@@ -117,8 +158,8 @@ const HomeScreen = ({ navigation }) => {
 
   const handleUpdateSOS = () => {
     setShowUpdateModal(false);
-    
-    // Create SOS history update
+
+    // Create SOS history update (preserve original logic/format)
     const newSOSHistory = {
       type: updateForm.disasterType || selectedEmergencyType?.label || 'Emergency',
       people: updateForm.peopleCount || '1',
@@ -130,7 +171,7 @@ const HomeScreen = ({ navigation }) => {
 
     // Save to local storage
     saveSOSHistory(newSOSHistory);
-    
+
     // Mock update - in real app would send to backend
     console.log('SOS Updated:', updateForm, newSOSHistory);
   };
@@ -147,24 +188,11 @@ const HomeScreen = ({ navigation }) => {
   const resetSOS = () => {
     setSOSStatus('idle');
     setSelectedEmergencyType(null);
-    setUpdateForm({
-      disasterType: '',
-      peopleCount: '',
-      supplies: [],
-      additionalInfo: '',
-    });
-    
+    setUpdateForm(INITIAL_UPDATE_FORM);
+
     // Clear SOS history from storage
-    const emptyHistory = {
-      type: '',
-      people: '',
-      supplies: [],
-      location: '',
-      time: '',
-      hasUpdate: false,
-    };
-    saveSOSHistory(emptyHistory);
-    
+    saveSOSHistory(EMPTY_HISTORY);
+
     fadeAnim.setValue(0);
   };
 
@@ -172,20 +200,20 @@ const HomeScreen = ({ navigation }) => {
     <>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
       <SafeAreaView style={styles.container}>
-        <KeyboardAwareScrollView 
+        <KeyboardAwareScrollView
           style={styles.scrollContainer}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           enableOnAndroid={true}
           keyboardShouldPersistTaps="handled"
         >
-        
+
         {/* Clean, centered main content */}
         <View style={styles.mainContent}>
-          
+
           {/* SOS Button - Large and Centered */}
           <View style={styles.sosContainer}>
-            <SOSButton 
+            <SOSButton
               onSOSActivated={handleSOSActivated}
               sosStatus={sosStatus}
               onResetSOS={resetSOS}
@@ -219,7 +247,7 @@ const HomeScreen = ({ navigation }) => {
                   <Text style={styles.sosUpdateLabel}>Time:</Text>
                   <Text style={styles.sosUpdateValue}>{sosHistory.time}</Text>
                 </View>
-                <Pressable 
+                <Pressable
                   style={styles.editInfoButton}
                   onPress={() => setShowUpdateModal(true)}
                 >
@@ -231,7 +259,7 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.sosUpdateEmptyText}>
                   No SOS information saved yet.
                 </Text>
-                <Pressable 
+                <Pressable
                   style={styles.addInfoButtonEmpty}
                   onPress={() => setShowUpdateModal(true)}
                 >
@@ -255,7 +283,7 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.etaText}>
                   Signal sent at {new Date(sosData.timestamp).toLocaleTimeString()}
                 </Text>
-                
+
                 <View style={styles.sosDataContainer}>
                   <Text style={styles.sosDataText}>
                     📍 {sosData.coordinates.lat.toFixed(6)}, {sosData.coordinates.lng.toFixed(6)}
@@ -266,21 +294,21 @@ const HomeScreen = ({ navigation }) => {
                 </View>
 
                 <View style={styles.actionButtons}>
-                  <Pressable 
+                  <Pressable
                     style={styles.handshakeButton}
                     onPress={() => navigation.navigate('Handshake', { userRole: 'user', incidentId: 'INC-001' })}
                   >
                     <Text style={styles.handshakeText}>🤝 Connect to Responder</Text>
                   </Pressable>
 
-                  <Pressable 
+                  <Pressable
                     style={styles.addInfoButton}
                     onPress={handleAddMoreInfo}
                   >
                     <Text style={styles.addInfoText}>➕ Add More Info</Text>
                   </Pressable>
 
-                  <Pressable 
+                  <Pressable
                     style={styles.resetButton}
                     onPress={resetSOS}
                   >
@@ -313,7 +341,7 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.updateModal}>
               <ScrollView showsVerticalScrollIndicator={false}>
                 <Text style={styles.modalTitle}>Update SOS Information</Text>
-                
+
                 {/* Disaster Type Selection */}
                 <View style={styles.formSection}>
                   <Text style={styles.formLabel}>Disaster Type</Text>
@@ -399,7 +427,7 @@ const HomeScreen = ({ navigation }) => {
                   >
                     <Text style={styles.updateSOSButtonText}>Update SOS</Text>
                   </Pressable>
-                  
+
                   <Pressable
                     style={styles.cancelModalButton}
                     onPress={() => setShowUpdateModal(false)}
