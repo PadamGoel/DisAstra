@@ -3,6 +3,11 @@
 **Disastra** is an Android emergency-response application designed for disaster scenarios where traditional communication infrastructure (internet/cellular networks) is unavailable. It forms a **peer-to-peer (P2P) mesh network** using the **Bridgefy SDK**, allowing SOS alerts to *hop* from device to device — creating a resilient, decentralized communication channel for victims and responders.
 
 ---
+Note: Find the version 1.0 codes at the "main" branch and version 2.0 codes at the "master branch*"
+- Chhavi Kukreja : 23106025
+- Mohak Kumar : 23106037
+- Padam Goel : 23106038
+- Chakshit : 23106033
 
 ## App Screenshot
 
