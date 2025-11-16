@@ -14,18 +14,36 @@ import { COLORS, SIZES } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
 
+/**
+ * SOSButton Component
+ * Provides emergency SOS functionality with visual feedback and haptic responses
+ * @param {Function} onSOSActivated - Callback when SOS is activated with emergency type
+ * @param {String} sosStatus - Current status: 'idle', 'sending', or 'sent'
+ * @param {Function} onResetSOS - Callback to reset SOS state
+ */
 const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
+  // State Management
   const [isPressed, setIsPressed] = useState(false);
   const [showEmergencyMenu, setShowEmergencyMenu] = useState(false);
   const [pressTimer, setPressTimer] = useState(null);
   
-  // Animations
+  // Animation References
   const breathingAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const haloAnim = useRef(new Animated.Value(0)).current;
 
-  // Breathing Animation - Light Mode
+  // Constants
+  const LONG_PRESS_DURATION = 1000;
+  const BREATHING_IDLE_DURATION = 1500;
+  const BREATHING_SENDING_DURATION = 400;
+  const BREATHING_SENT_DURATION = 2000;
+  const HALO_ANIMATION_DURATION = 1500;
+
+  /**
+   * Breathing Animation Effect
+   * Creates different breathing patterns based on SOS status
+   */
   useEffect(() => {
     let breathingLoop;
     
@@ -35,12 +53,12 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
         Animated.sequence([
           Animated.timing(breathingAnim, {
             toValue: 1.08,
-            duration: 1500,
+            duration: BREATHING_IDLE_DURATION,
             useNativeDriver: true,
           }),
           Animated.timing(breathingAnim, {
             toValue: 1,
-            duration: 1500,
+            duration: BREATHING_IDLE_DURATION,
             useNativeDriver: true,
           }),
         ])
@@ -51,12 +69,12 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
         Animated.sequence([
           Animated.timing(breathingAnim, {
             toValue: 1.15,
-            duration: 400,
+            duration: BREATHING_SENDING_DURATION,
             useNativeDriver: true,
           }),
           Animated.timing(breathingAnim, {
             toValue: 1,
-            duration: 400,
+            duration: BREATHING_SENDING_DURATION,
             useNativeDriver: true,
           }),
         ])
@@ -67,12 +85,12 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
         Animated.sequence([
           Animated.timing(breathingAnim, {
             toValue: 1.03,
-            duration: 2000,
+            duration: BREATHING_SENT_DURATION,
             useNativeDriver: true,
           }),
           Animated.timing(breathingAnim, {
             toValue: 1,
-            duration: 2000,
+            duration: BREATHING_SENT_DURATION,
             useNativeDriver: true,
           }),
         ])
@@ -90,19 +108,22 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
     };
   }, [sosStatus, breathingAnim]);
 
-  // Confirmation Halo Animation
+  /**
+   * Confirmation Halo Animation Effect
+   * Shows pulsing halo when SOS is successfully sent
+   */
   useEffect(() => {
     if (sosStatus === 'sent') {
       Animated.loop(
         Animated.sequence([
           Animated.timing(haloAnim, {
             toValue: 1,
-            duration: 1500,
+            duration: HALO_ANIMATION_DURATION,
             useNativeDriver: true,
           }),
           Animated.timing(haloAnim, {
             toValue: 0.3,
-            duration: 1500,
+            duration: HALO_ANIMATION_DURATION,
             useNativeDriver: true,
           }),
         ])
@@ -112,51 +133,58 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
     }
   }, [sosStatus, haloAnim]);
 
+  /**
+   * Handle Press In Event
+   * Initiates long press detection and visual feedback
+   */
   const handlePressIn = () => {
     if (sosStatus !== 'idle') return;
     
     setIsPressed(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
-    // Scale down animation
+    // Scale down animation for press feedback
     Animated.spring(scaleAnim, {
       toValue: 0.95,
       useNativeDriver: true,
     }).start();
     
-    // Start progress animation for long press
+    // Start long press timer
     const timer = setTimeout(() => {
-      // Long press detected - show emergency menu
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       setShowEmergencyMenu(true);
-    }, 1000); // 1 second long press
+    }, LONG_PRESS_DURATION);
     
     setPressTimer(timer);
     
-    // Progress fill animation
+    // Animate progress fill
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 1000,
+      duration: LONG_PRESS_DURATION,
       useNativeDriver: false,
     }).start();
   };
 
+  /**
+   * Handle Press Out Event
+   * Clears timers and resets animations
+   */
   const handlePressOut = () => {
     setIsPressed(false);
     
-    // Scale back up
+    // Scale back to normal
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
     }).start();
     
-    // Clear timer
+    // Clear the long press timer
     if (pressTimer) {
       clearTimeout(pressTimer);
       setPressTimer(null);
     }
     
-    // Reset progress
+    // Reset progress animation
     Animated.timing(progressAnim, {
       toValue: 0,
       duration: 200,
@@ -164,12 +192,20 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
     }).start();
   };
 
+  /**
+   * Handle Emergency Type Selection
+   * Closes menu and triggers SOS activation
+   */
   const handleEmergencySelect = (emergencyType) => {
     setShowEmergencyMenu(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSOSActivated(emergencyType);
   };
 
+  /**
+   * Get Button Gradient Colors
+   * Returns appropriate gradient based on current status
+   */
   const getButtonGradient = () => {
     switch (sosStatus) {
       case 'idle':
@@ -183,6 +219,10 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
     }
   };
 
+  /**
+   * Get Button Text
+   * Returns appropriate text based on current status
+   */
   const getButtonText = () => {
     switch (sosStatus) {
       case 'idle':
@@ -196,6 +236,7 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
     }
   };
 
+  // Emergency type options configuration
   const emergencyTypes = [
     { id: 'medical', icon: '🚑', label: 'Medical', color: COLORS.emergency },
     { id: 'fire', icon: '🔥', label: 'Fire', color: '#FF6F00' },
@@ -206,7 +247,7 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
   return (
     <>
       <View style={styles.container}>
-        {/* Confirmation Halo */}
+        {/* Confirmation Halo - Visible when SOS is sent */}
         {sosStatus === 'sent' && (
           <Animated.View
             style={[
@@ -226,6 +267,7 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
           />
         )}
 
+        {/* Main SOS Button Container */}
         <Animated.View
           style={[
             styles.buttonContainer,
@@ -248,7 +290,7 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              {/* Progress Fill */}
+              {/* Progress Fill Indicator */}
               <Animated.View
                 style={[
                   styles.progressFill,
@@ -267,8 +309,10 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
                 ]}
               />
               
+              {/* Button Text */}
               <Text style={styles.sosText}>{getButtonText()}</Text>
               
+              {/* Instruction Text - Only visible in idle state */}
               {sosStatus === 'idle' && (
                 <Text style={styles.instructionText}>Hold to Activate</Text>
               )}
@@ -288,6 +332,7 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
           <View style={styles.emergencyMenu}>
             <Text style={styles.menuTitle}>Select Emergency Type</Text>
             
+            {/* Emergency Options Grid */}
             <View style={styles.emergencyGrid}>
               {emergencyTypes.map((emergency) => (
                 <Pressable
@@ -301,6 +346,7 @@ const SOSButton = ({ onSOSActivated, sosStatus, onResetSOS }) => {
               ))}
             </View>
             
+            {/* Cancel Button */}
             <Pressable
               style={styles.cancelButton}
               onPress={() => setShowEmergencyMenu(false)}
