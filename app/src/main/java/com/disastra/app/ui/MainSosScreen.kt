@@ -40,6 +40,23 @@ import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 
+/*
+ * DISASTRA - UI
+ * Minimal, non-functional refactor: add file header and private UI constants for readability.
+ * Author: Chakshit Bansal (suggested)
+ * Note: No logic changes — only documentation and constant extraction.
+ */
+
+// ------------------------
+// UI Constants (presentation only, no behavior change)
+// ------------------------
+private val MAIN_BUTTON_BOX_SIZE = 340.dp
+private val MAIN_BUTTON_SIZE = 230.dp
+private val MAIN_HALO_OUTER = 300.dp
+private val MAIN_HALO_INNER = 280.dp
+private val RADIAL_RADIUS = 140.dp
+private const val ACTIVATION_HOLD_MS = 3000
+
 // --- Emergency Colors ---
 enum class EmergencyType(val icon: ImageVector, val label: String, val color: Color) {
     TRAPPED(Icons.Default.Roofing, "Trapped", Color(0xFF9969C7)),
@@ -1175,3 +1192,4 @@ fun PremiumChip(
         }
     }
 }
+//added all the mainSocket files
