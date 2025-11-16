@@ -1,9 +1,37 @@
+/*!
+ * DISASTRA - Tailwind overrides
+ * Minimal non-functional refactor: add file header and CSS variable for maintainability.
+ * Author: Chakshit Bansal (suggested)
+ * Note: No behavioral changes — values are identical to original.
+ */
+
+/* Tailwind directives (keep as-is) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Ensure full-height app root */
 html, body, #root {
   height: 100%;
 }
 
-.bg-gray-750 { background-color: #2b2b2b; }
+/* -----------------------
+   Design tokens / variables
+   (keeps color in one place for easier future tuning)
+   ----------------------- */
+:root {
+  /* exact same color as original #2b2b2b */
+  --color-gray-750: #2b2b2b;
+}
+
+/* Utility aliases (preserve exact appearance)
+   .bg-gray-750 remains equivalent to original */
+.bg-gray-750 { 
+  background-color: var(--color-gray-750);
+}
+
+/* Optional: a named semantic alias for easier theming later
+   (keeps same color; comment only — can be removed if unwanted) */
+.bg-app-surface { 
+  background-color: var(--color-gray-750);
+}
