@@ -1,5 +1,20 @@
-// Mock data for DISASTRA UI prototype
+/**
+ * Mock Data for DISASTRA UI Prototype
+ * 
+ * This file contains sample data for testing and development of the emergency
+ * response system. All data is fictional and used for demonstration purposes.
+ * 
+ * @module mockData
+ */
 
+// =============================================================================
+// EMERGENCY TYPE DEFINITIONS
+// =============================================================================
+
+/**
+ * Emergency type categories with their respective priorities
+ * Priority scale: 1 (lowest) to 10 (highest/most critical)
+ */
 export const EMERGENCY_TYPES = [
   { id: 'medical', label: '🏥 Medical', color: '#ef4444', priority: 9 },
   { id: 'fire', label: '🔥 Fire', color: '#f97316', priority: 10 },
@@ -11,6 +26,14 @@ export const EMERGENCY_TYPES = [
   { id: 'other', label: '❓ Other', color: '#6b7280', priority: 5 }
 ];
 
+// =============================================================================
+// SOS INCIDENT DATA
+// =============================================================================
+
+/**
+ * Sample SOS incidents with various statuses and urgency levels
+ * Status types: 'new', 'acknowledged', 'en-route', 'resolved'
+ */
 export const MOCK_SOS_INCIDENTS = [
   {
     id: 'sos-001',
@@ -22,7 +45,7 @@ export const MOCK_SOS_INCIDENTS = [
     batteryLevel: 45,
     deviceId: 'device-001',
     urgency: 9,
-    distance: 450 // meters
+    distance: 450 // Distance in meters
   },
   {
     id: 'sos-002',
@@ -49,7 +72,7 @@ export const MOCK_SOS_INCIDENTS = [
     urgency: 8,
     distance: 320,
     assignedTeam: 'Police Unit 12',
-    eta: 3 // minutes
+    eta: 3 // ETA in minutes
   },
   {
     id: 'sos-004',
@@ -66,6 +89,14 @@ export const MOCK_SOS_INCIDENTS = [
   }
 ];
 
+// =============================================================================
+// RESPONDER TEAM DATA
+// =============================================================================
+
+/**
+ * Emergency response teams with their current status and location
+ * Status types: 'available', 'responding', 'en-route', 'busy'
+ */
 export const MOCK_RESPONDER_TEAMS = [
   {
     id: 'team-001',
@@ -96,6 +127,14 @@ export const MOCK_RESPONDER_TEAMS = [
   }
 ];
 
+// =============================================================================
+// NETWORK STATISTICS
+// =============================================================================
+
+/**
+ * Real-time mesh network statistics
+ * Health indicators: 'excellent', 'good', 'fair', 'poor'
+ */
 export const MOCK_NETWORK_STATS = {
   peerCount: 127,
   health: 'good',
@@ -104,10 +143,19 @@ export const MOCK_NETWORK_STATS = {
   lastUpdate: Date.now()
 };
 
+// =============================================================================
+// USER PROFILE DATA
+// =============================================================================
+
+/**
+ * User profile information
+ * Role types: 'civilian', 'volunteer', 'responder', 'coordinator'
+ * Verification levels: 'unverified', 'pending', 'verified', 'trusted'
+ */
 export const MOCK_USER_PROFILE = {
   id: 'user-001',
   name: 'Alex Johnson',
-  role: 'civilian', // civilian, volunteer, responder
+  role: 'civilian',
   language: 'en',
   trustRingSize: 8,
   sosHistory: 2,
@@ -115,6 +163,14 @@ export const MOCK_USER_PROFILE = {
   verificationLevel: 'verified'
 };
 
+// =============================================================================
+// HAZARD ZONE DATA
+// =============================================================================
+
+/**
+ * Active hazard zones with severity levels
+ * Severity types: 'low', 'medium', 'high', 'critical'
+ */
 export const MOCK_HAZARD_ZONES = [
   {
     id: 'hazard-001',
@@ -142,6 +198,15 @@ export const MOCK_HAZARD_ZONES = [
   }
 ];
 
+// =============================================================================
+// EVACUATION ROUTE DATA
+// =============================================================================
+
+/**
+ * Designated evacuation routes with real-time status
+ * Capacity levels: 'low', 'medium', 'high'
+ * Status types: 'clear', 'congested', 'blocked'
+ */
 export const MOCK_EVACUATION_ROUTES = [
   {
     id: 'route-001',
@@ -168,13 +233,22 @@ export const MOCK_EVACUATION_ROUTES = [
   }
 ];
 
+// =============================================================================
+// NOTIFICATION MESSAGES
+// =============================================================================
+
+/**
+ * System messages and notifications
+ * Priority levels: 'low', 'medium', 'high', 'critical'
+ * Message types: 'sos-confirmation', 'safety-update', 'network-update', 'alert'
+ */
 export const MOCK_MESSAGES = [
   {
     id: 'msg-001',
     type: 'sos-confirmation',
     title: 'Help is on the way!',
     body: 'Medical Response Unit 3 has been dispatched. ETA: 4 minutes.',
-    timestamp: Date.now() - 120000,
+    timestamp: Date.now() - 120000, // 2 minutes ago
     priority: 'high'
   },
   {
@@ -182,7 +256,7 @@ export const MOCK_MESSAGES = [
     type: 'safety-update',
     title: 'Area Safe',
     body: 'Gas leak in sector 7 has been contained. Area now safe.',
-    timestamp: Date.now() - 300000,
+    timestamp: Date.now() - 300000, // 5 minutes ago
     priority: 'medium'
   },
   {
@@ -190,11 +264,19 @@ export const MOCK_MESSAGES = [
     type: 'network-update',
     title: 'Network Restored',
     body: 'Mesh network coverage improved to 95% in your area.',
-    timestamp: Date.now() - 600000,
+    timestamp: Date.now() - 600000, // 10 minutes ago
     priority: 'low'
   }
 ];
 
+// =============================================================================
+// ANALYTICS AND METRICS
+// =============================================================================
+
+/**
+ * System-wide analytics and performance metrics
+ * Safety index levels: 'Critical', 'Poor', 'Fair', 'Good', 'Excellent'
+ */
 export const MOCK_ANALYTICS = {
   urgencyScore: 7.2,
   networkHealth: 85,
