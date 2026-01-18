@@ -737,6 +737,16 @@ fun SosButtonCluster(
                 scale = scale,
                 onClick = { showMedicalDialog = true }
             )
+            RadialMenuItem(
+                icon = Icons.Default.Favorite,
+                label = "Heartbeat",
+                angle = 180f,
+                scale = scale,
+                onClick = {
+                    // step 3 will go here
+                    Log.d("Disastra", "Heartbeat clicked")
+                }
+            )
 
             RadialMenuItem(
                 icon = Icons.Default.CheckCircle,
